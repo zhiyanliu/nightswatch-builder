@@ -23,15 +23,21 @@ public class NWBuilderApp {
             StackProps props = StackProps.builder()
                     .withEnv(Environment.builder().withRegion(region).build())
                     .build();
-            new AppOTADemoStack(cdkApp, "nightswatch-app-ota-demo", props);
+            new AppOTADemoIoTStack(cdkApp, "nightswatch-app-ota-demo-iot", props);
+            new AppOTADemoDeviceStack(cdkApp, "nightswatch-app-ota-demo-dev", props);
 
             // required until https://github.com/awslabs/jsii/issues/456 is resolve
             cdkApp.synth();
-        } else if (argv.length == 2) {
-            if ("app-ota-demo".equals(argv[0])) {
-
+        } else if ("app-ota-demo".equals(argv[0])) {
+            if (argv.length >= 4 && "prepare-asset".equals(argv[1])) {
+                String rootCAFileName = null;
+                if (argv.length >= 5)
+                    rootCAFileName = argv[4];
+                new AppOTADemoAssert().provision(argv[2], argv[3], rootCAFileName);
+            } else if (argv.length >= 5 && "cleanup-asset".equals(argv[1])) {
+                new AppOTADemoAssert().deProvision(argv[2], argv[3], argv[4]);
             } else {
-                log.error("invalid demo name");
+                log.error("invalid demo command");
             }
         } else {
             log.error("invalid parameter, refer document");
