@@ -139,12 +139,12 @@ public class AppOTADemoIoTStack extends Stack {
         // Output the thing configuration
         new CfnOutput(this, "cert-id", CfnOutputProps.builder()
                 .withValue(cert.getRef())
-                .withDescription("the certificate ID for NW app OTA demo")
+                .withDescription("the thing certificate ID for NW app OTA demo")
                 .build());
 
         new CfnOutput(this, "cert-arn", CfnOutputProps.builder()
                 .withValue(cert.getAttrArn())
-                .withDescription("the certificate ARN for NW app OTA demo")
+                .withDescription("the thing certificate ARN for NW app OTA demo")
                 .build());
     }
 
@@ -180,12 +180,11 @@ public class AppOTADemoIoTStack extends Stack {
         Bucket devFileBucket = new Bucket(this, this.deviceFileBucketName, BucketProps.builder()
                 .withBlockPublicAccess(new BlockPublicAccess(BlockPublicAccessOptions.builder()
                         .withBlockPublicAcls(false)
-//                        .withIgnorePublicAcls(false)
-//                        .withBlockPublicPolicy(false)
-//                        .withRestrictPublicBuckets(false)
+                        .withBlockPublicPolicy(true)
+                        .withRestrictPublicBuckets(true)
                         .build()))
                 .withRemovalPolicy(RemovalPolicy.DESTROY)
-                .withPublicReadAccess(true)
+                .withPublicReadAccess(false)
                 .withBucketName(this.deviceFileBucketName)
                 .build());
 

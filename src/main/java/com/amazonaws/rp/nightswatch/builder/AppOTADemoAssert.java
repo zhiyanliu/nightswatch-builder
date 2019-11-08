@@ -2,6 +2,10 @@ package com.amazonaws.rp.nightswatch.builder;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.SdkClientException;
+import com.amazonaws.services.cloudformation.AmazonCloudFormation;
+import com.amazonaws.services.cloudformation.AmazonCloudFormationClientBuilder;
+import com.amazonaws.services.cloudformation.model.Stack;
+import com.amazonaws.services.cloudformation.model.*;
 import com.amazonaws.services.iot.AWSIot;
 import com.amazonaws.services.iot.AWSIotClientBuilder;
 import com.amazonaws.services.iot.model.CertificateDescription;
@@ -18,10 +22,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.net.URL;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -30,17 +31,23 @@ public class AppOTADemoAssert {
 
     private final static String PUB_KEY_NAME = "nw-app-ota-demo-dev-public";
     private final static String PRV_KEY_NAME = "nw-app-ota-demo-dev-private";
+    private final static String ROOT_CA_NAME = "root-ca.crt";
 
     private final static String RANGER_PKG_FILE_NAME = "nightswatch-ranger.tar.gz";
-
     private final static String INIT_SCRIPT_FILE_NAME = "init.py";
 
-    private String rootCAFileName = "root-ca.crt";
+    public void provision(final String appOTADemoIoTStackName) throws IOException {
 
-    public void provision(final String devFileBucketName, final String certId,
-                          final String rootCAFileName) throws IOException {
-        if (rootCAFileName != null)
-            this.rootCAFileName = rootCAFileName;
+        String devFileBucketName = this.queryDeviceFileBucketName(appOTADemoIoTStackName);
+        if (devFileBucketName == null)
+            throw new IllegalArgumentException(String.format(
+                    "the name of s3 bucket to save EC2 instance files not found, " +
+                            "is the NW app OTA demo stack %s invalid?", appOTADemoIoTStackName));
+
+        String certId = this.queryThingCertificateId(appOTADemoIoTStackName);
+        if (certId == null)
+            throw new IllegalArgumentException(String.format("the thing certificate ID not found, " +
+                    "is the NW app OTA demo stack %s invalid?", appOTADemoIoTStackName));
 
         // Night's Watch - Ranger stuff
         String zipFilePath = this.prepareCredentials(certId);
@@ -51,12 +58,28 @@ public class AppOTADemoAssert {
 
         System.out.println();
         System.out.println("Outputs:");
-        System.out.println(String.format("init script file URL: %s", preSignedInitScriptURL));
         System.out.println(String.format("init script file URL (base64): %s",
                 new String(Base64.encodeBase64(preSignedInitScriptURL.getBytes()))));
     }
 
-    public void deProvision(final String devFileBucketName, String jobDocBucketName, final String certId) {
+    public void deProvision(final String appOTADemoIoTStackName) {
+        String devFileBucketName = this.queryDeviceFileBucketName(appOTADemoIoTStackName);
+        if (devFileBucketName == null)
+            throw new IllegalArgumentException(String.format(
+                    "the name of s3 bucket to save EC2 instance files not found, " +
+                            "is the NW app OTA demo stack %s invalid?", appOTADemoIoTStackName));
+
+        String jobDocBucketName = this.queryJobDocBucketName(appOTADemoIoTStackName);
+        if (jobDocBucketName == null)
+            throw new IllegalArgumentException(String.format(
+                    "the name of s3 bucket to save job document not found, " +
+                            "is the NW app OTA demo stack %s invalid?", appOTADemoIoTStackName));
+
+        String certId = this.queryThingCertificateId(appOTADemoIoTStackName);
+        if (certId == null)
+            throw new IllegalArgumentException(String.format("the thing certificate ID not found, " +
+                    "is the NW app OTA demo stack %s invalid?", appOTADemoIoTStackName));
+
         this.deactivateThingCert(certId);
 
         this.emptyS3Bucket(devFileBucketName);
@@ -87,7 +110,7 @@ public class AppOTADemoAssert {
         log.info(String.format("the IoT device certificate %s is downloaded at %s, status: %s",
                 certId, certFilePath, certDesc.getStatus()));
 
-        String fileName = String.format("nw-app-ota-demo/%s", this.rootCAFileName);
+        String fileName = String.format("nw-app-ota-demo/%s", ROOT_CA_NAME);
         URL rootCa = getClass().getClassLoader().getResource(fileName);
         if (rootCa == null)
             throw new IllegalArgumentException(
@@ -120,6 +143,54 @@ public class AppOTADemoAssert {
         out.close();
 
         log.info(String.format("the IoT device private key is generated at %s", privateKeyPath));
+    }
+
+    private Map<String, String> getExports(AmazonCloudFormation client, String nextToken) {
+        ListExportsResult exportResult = client.listExports(new ListExportsRequest().withNextToken(nextToken));
+        Map<String, String> map = new HashMap<>();
+
+        for (Export export : exportResult.getExports())
+            map.put(export.getName(), export.getValue());
+
+        if (exportResult.getNextToken() != null)
+            map.putAll(this.getExports(client, exportResult.getNextToken()));
+
+        return map;
+    }
+
+    private String queryStackOutput(String appOTADemoIoTStackName, String outputKey) {
+        AmazonCloudFormation client = AmazonCloudFormationClientBuilder.defaultClient();
+
+        DescribeStacksRequest req = new DescribeStacksRequest();
+        req.setStackName(appOTADemoIoTStackName);
+
+        DescribeStacksResult result = client.describeStacks(req);
+        List<Stack> stacks = result.getStacks();
+
+        if (stacks.size() == 0)
+            throw new IllegalArgumentException(
+                    String.format("stack %s not found, deploy it first", appOTADemoIoTStackName));
+
+        List<Output> outputs = stacks.get(0).getOutputs();
+
+        for (Output output : outputs) {
+            if (output.getOutputKey().equals(outputKey))
+                return output.getOutputValue();
+        }
+
+        return null;
+    }
+
+    private String queryDeviceFileBucketName(String appOTADemoIoTStackName) {
+        return this.queryStackOutput(appOTADemoIoTStackName, "devfilesbucketname");
+    }
+
+    private String queryThingCertificateId(String appOTADemoIoTStackName) {
+        return this.queryStackOutput(appOTADemoIoTStackName, "certid");
+    }
+
+    private String queryJobDocBucketName(String appOTADemoIoTStackName) {
+        return this.queryStackOutput(appOTADemoIoTStackName, "jobdocbucketname");
     }
 
     private String prepareCredentials(String certId) throws IOException {
@@ -331,7 +402,7 @@ public class AppOTADemoAssert {
 
     private void deactivateThingCert(String certId) {
         AWSIot iotClient = AWSIotClientBuilder.defaultClient();
-        log.info("Connected to AWS IoT service.");
+        log.debug("connected to AWS IoT service");
 
         // Deactivate three certificates
         //      CLI: aws iot update-certificate --new-status INACTIVE --certificate-id <certificate_id>
