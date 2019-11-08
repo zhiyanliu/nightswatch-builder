@@ -10,7 +10,7 @@ Mainly, and currently, Night's Watch - Builder provides two functions:
 
 ## Why [we](mailto:awscn-sa-prototyping@amazon.com) develop it
 
-As the pair project of Night's Watch - Range, we would like to automatize the IoT resources create and configuration, more over, to easy the demonstration of Ranger supported OTA cases. We hope this project can assist SA understand and use our reusable asset quickly and correctly.
+As the pair project of (Night's Watch - Range)[http://git.awsrun.com/rp/nightswatch-ranger], we would like to automatize the IoT resources create and configuration, more over, to easy the demonstration of Ranger supported OTA cases. We hope this project can assist SA understand and use our reusable asset quickly and correctly.
 
 >> **Note:**
 >>
@@ -23,13 +23,13 @@ As the pair project of Night's Watch - Range, we would like to automatize the Io
 If you would like to try automatic IoT resource stack deployment, this project does not work for you if:
 
 * Your device will not manged by AWS IoT Core service.
-* You do not have a credential to access (non-China) WW AWS region.
+* You do not have a credential to access WW (non-China) AWS region.
 * Your AWS account user has not right to fully access AWS IoT Core, CloudFormation or S3 service.
-* You do not have a client device, like Mac, Ubuntu or Windows, to install and run Java, Node/npm and CDK.
+* You do not have a local laptop/PC runs MacOS, Ubuntu or Windows system, to install and run Apache Maven, Java, node, npm and AWS CDK.
 
 Additional, if you would like to try demonstration, it will not work if:
 
-* Your AWS account user has not right to fully access AWS EC2 and VPC service.
+* Your AWS account user has not right to fully access AWS EC2 and VPC service, whatever in China or WW AWS region.
 
 ## How to build
 
