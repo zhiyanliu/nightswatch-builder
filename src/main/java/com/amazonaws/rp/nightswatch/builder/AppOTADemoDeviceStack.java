@@ -9,12 +9,12 @@ import software.amazon.awscdk.services.ec2.*;
 import java.util.Arrays;
 
 public class AppOTADemoDeviceStack extends Stack {
-    private static Logger log = LoggerFactory.getLogger("nightswatch-app-ota-demo-device-stack");
+    private final Logger log = LoggerFactory.getLogger("nightswatch-app-ota-demo-device-stack");
 
     private final String ec2ImageID;
     private final String ec2Flavor;
     private final String ec2KeyName;
-    private final String ec2InitScriptURLBase64;
+    private final String ec2SetupScriptURLBase64;
 
     public AppOTADemoDeviceStack(final Construct parent, final String id) {
         this(parent, id, null);
@@ -41,11 +41,15 @@ public class AppOTADemoDeviceStack extends Stack {
         else
             this.ec2KeyName = ec2KeyNameObj.toString();
 
-        Object ec2InitScriptURLObj = this.getNode().tryGetContext("ec2-init-script-url-base64");
-        if (ec2InitScriptURLObj == null) {
-            this.ec2InitScriptURLBase64 = null;
+        Object ec2SetupScriptURLObj = this.getNode().tryGetContext("ec2-setup-script-url-base64");
+        if (ec2SetupScriptURLObj == null) {
+            this.ec2SetupScriptURLBase64 = null;
         } else {
-            this.ec2InitScriptURLBase64 = ec2InitScriptURLObj.toString();
+            String s = ec2SetupScriptURLObj.toString();
+            if (!Base64.isBase64(s))
+                throw new IllegalArgumentException(
+                        "parameter ec2-setup-script-url-base64 is not a valid base64 string");
+            this.ec2SetupScriptURLBase64 = s;
         }
 
         // EC2 instance (act device) stuff
@@ -127,9 +131,13 @@ public class AppOTADemoDeviceStack extends Stack {
     private void createEC2Device(CfnSubnet subnet, CfnSecurityGroup sg) {
         String cmd = null;
 
-        if (this.ec2InitScriptURLBase64 != null) {
-            String ec2InitScriptURL = new String(Base64.decodeBase64(this.ec2InitScriptURLBase64));
-            cmd = String.format("#!/bin/bash\ncurl -o /tmp/init.py -fs '%s'\npython3 /tmp/init.py\n", ec2InitScriptURL);
+        if (this.ec2SetupScriptURLBase64 != null) {
+            String ec2SetupScriptURL = new String(Base64.decodeBase64(this.ec2SetupScriptURLBase64));
+            cmd = String.format("#!/bin/bash\n" +
+                            "sudo apt install -y unzip\n" +
+                            "curl -o /tmp/setup.py -fs '%s'\n" +
+                            "python3 /tmp/setup.py\n",
+                    ec2SetupScriptURL);
             cmd = new String(Base64.encodeBase64(cmd.getBytes()));
         }
 

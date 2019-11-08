@@ -2,10 +2,7 @@ package com.amazonaws.rp.nightswatch.builder;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.SdkClientException;
-import com.amazonaws.services.cloudformation.AmazonCloudFormation;
-import com.amazonaws.services.cloudformation.AmazonCloudFormationClientBuilder;
-import com.amazonaws.services.cloudformation.model.Stack;
-import com.amazonaws.services.cloudformation.model.*;
+import com.amazonaws.rp.nightswatch.builder.utils.StackOutputQuerier;
 import com.amazonaws.services.iot.AWSIot;
 import com.amazonaws.services.iot.AWSIotClientBuilder;
 import com.amazonaws.services.iot.model.CertificateDescription;
@@ -22,22 +19,26 @@ import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.net.URL;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 public class AppOTADemoAssert {
-    private static Logger log = LoggerFactory.getLogger("nightswatch-app-ota-demo-asset");
+    private final Logger log = LoggerFactory.getLogger("nightswatch-app-ota-demo-asset");
+    private final StackOutputQuerier outputQuerier = new StackOutputQuerier();
 
     private final static String PUB_KEY_NAME = "nw-app-ota-demo-dev-public";
     private final static String PRV_KEY_NAME = "nw-app-ota-demo-dev-private";
     private final static String ROOT_CA_NAME = "root-ca.crt";
 
+    private final static String CREDENTIALS_FILE_NAME = "credentials.zip";
     private final static String RANGER_PKG_FILE_NAME = "nightswatch-ranger.tar.gz";
-    private final static String INIT_SCRIPT_FILE_NAME = "init.py";
+    private final static String SETUP_SCRIPT_FILE_NAME = "setup.py";
 
     public void provision(final String appOTADemoIoTStackName) throws IOException {
-
         String devFileBucketName = this.queryDeviceFileBucketName(appOTADemoIoTStackName);
         if (devFileBucketName == null)
             throw new IllegalArgumentException(String.format(
@@ -51,15 +52,21 @@ public class AppOTADemoAssert {
 
         // Night's Watch - Ranger stuff
         String zipFilePath = this.prepareCredentials(certId);
-        String preSignedCredentialsPackageURL = this.uploadCredentials(devFileBucketName, zipFilePath);
-        String preSignedRangerPackageURL = this.uploadNightsWatchRangerPackage(devFileBucketName);
-        String scriptFilePath = this.prepareInitScript(preSignedCredentialsPackageURL, preSignedRangerPackageURL);
-        String preSignedInitScriptURL = this.uploadInitScript(devFileBucketName, scriptFilePath);
+        this.uploadCredentials(devFileBucketName, zipFilePath);
+        this.uploadNightsWatchRangerPackage(devFileBucketName);
+
+        String preSignedCredentialsPackageURL = this.getPreSignedCredentialsPackageUrl(devFileBucketName);
+        String preSignedRangerPackageURL = this.getPreSignedRangerPackageUrl(devFileBucketName);
+
+        String scriptFilePath = this.prepareSetupScript(preSignedCredentialsPackageURL, preSignedRangerPackageURL);
+        this.uploadSetupScript(devFileBucketName, scriptFilePath);
+
+        String preSignedSetupScriptURL = this.getPreSignedSetupScriptUrl(devFileBucketName);
 
         System.out.println();
         System.out.println("Outputs:");
-        System.out.println(String.format("init script file URL (base64): %s",
-                new String(Base64.encodeBase64(preSignedInitScriptURL.getBytes()))));
+        System.out.println(String.format("setup script file URL (base64): %s",
+                new String(Base64.encodeBase64(preSignedSetupScriptURL.getBytes()))));
     }
 
     public void deProvision(final String appOTADemoIoTStackName) {
@@ -145,52 +152,17 @@ public class AppOTADemoAssert {
         log.info(String.format("the IoT device private key is generated at %s", privateKeyPath));
     }
 
-    private Map<String, String> getExports(AmazonCloudFormation client, String nextToken) {
-        ListExportsResult exportResult = client.listExports(new ListExportsRequest().withNextToken(nextToken));
-        Map<String, String> map = new HashMap<>();
-
-        for (Export export : exportResult.getExports())
-            map.put(export.getName(), export.getValue());
-
-        if (exportResult.getNextToken() != null)
-            map.putAll(this.getExports(client, exportResult.getNextToken()));
-
-        return map;
-    }
-
-    private String queryStackOutput(String appOTADemoIoTStackName, String outputKey) {
-        AmazonCloudFormation client = AmazonCloudFormationClientBuilder.defaultClient();
-
-        DescribeStacksRequest req = new DescribeStacksRequest();
-        req.setStackName(appOTADemoIoTStackName);
-
-        DescribeStacksResult result = client.describeStacks(req);
-        List<Stack> stacks = result.getStacks();
-
-        if (stacks.size() == 0)
-            throw new IllegalArgumentException(
-                    String.format("stack %s not found, deploy it first", appOTADemoIoTStackName));
-
-        List<Output> outputs = stacks.get(0).getOutputs();
-
-        for (Output output : outputs) {
-            if (output.getOutputKey().equals(outputKey))
-                return output.getOutputValue();
-        }
-
-        return null;
-    }
 
     private String queryDeviceFileBucketName(String appOTADemoIoTStackName) {
-        return this.queryStackOutput(appOTADemoIoTStackName, "devfilesbucketname");
+        return this.outputQuerier.query(appOTADemoIoTStackName, "devfilesbucketname");
     }
 
     private String queryThingCertificateId(String appOTADemoIoTStackName) {
-        return this.queryStackOutput(appOTADemoIoTStackName, "certid");
+        return this.outputQuerier.query(appOTADemoIoTStackName, "certid");
     }
 
     private String queryJobDocBucketName(String appOTADemoIoTStackName) {
-        return this.queryStackOutput(appOTADemoIoTStackName, "jobdocbucketname");
+        return this.outputQuerier.query(appOTADemoIoTStackName, "jobdocbucketname");
     }
 
     private String prepareCredentials(String certId) throws IOException {
@@ -211,7 +183,7 @@ public class AppOTADemoAssert {
         this.generateCredentials(certId, certFilePath, rootCaPath, publicKeyPath, privateKeyPath);
 
         List<String> srcFiles = Arrays.asList(certFilePath, rootCaPath, publicKeyPath, privateKeyPath);
-        String zipFilePath = String.format("%s/credentials.zip", credentialsPath);
+        String zipFilePath = String.format("%s/%s", credentialsPath, CREDENTIALS_FILE_NAME);
         FileOutputStream fos = new FileOutputStream(zipFilePath);
         ZipOutputStream zipOut = new ZipOutputStream(fos);
 
@@ -237,11 +209,11 @@ public class AppOTADemoAssert {
         return zipFilePath;
     }
 
-    private String uploadCredentials(final String devFileBucketName, final String zipFilePath) {
+    private void uploadCredentials(final String devFileBucketName, final String zipFilePath) {
         try {
             AmazonS3 s3Client = AmazonS3ClientBuilder.standard().build();
 
-            log.debug("connected to AWS S3 service.");
+            log.debug("connected to AWS S3 service");
 
             File file = new File(zipFilePath);
 
@@ -255,16 +227,6 @@ public class AppOTADemoAssert {
 
             log.info(String.format("credentials package file %s uploaded to the bucket %s",
                     file.getName(), devFileBucketName));
-
-            Calendar c = Calendar.getInstance();
-            c.setTime(new Date());  // now
-            c.add(Calendar.DATE, 7);  // one week
-
-            GeneratePresignedUrlRequest req1 = new GeneratePresignedUrlRequest(devFileBucketName, file.getName());
-            req1.setExpiration(c.getTime());
-            URL preSignedURL = s3Client.generatePresignedUrl(req1);
-
-            return preSignedURL.toString();
         } catch (SdkClientException e) {
             e.printStackTrace();
             log.error(String.format("failed to upload credentials package file to S3 bucket %s", devFileBucketName));
@@ -272,7 +234,7 @@ public class AppOTADemoAssert {
         }
     }
 
-    private String uploadNightsWatchRangerPackage(final String devFileBucketName) throws IOException {
+    private void uploadNightsWatchRangerPackage(final String devFileBucketName) throws IOException {
         try {
             String packageDstPath = System.getProperty("user.dir") + "/target/app-ota-demo/nightswatch-ranger";
 
@@ -313,17 +275,6 @@ public class AppOTADemoAssert {
 
             log.info(String.format("Night's Watch - Ranger package file %s uploaded to the bucket %s",
                     file.getName(), devFileBucketName));
-
-            Calendar c = Calendar.getInstance();
-            c.setTime(new Date());  // now
-            c.add(Calendar.DATE, 7);  // one week
-
-            GeneratePresignedUrlRequest req1 = new GeneratePresignedUrlRequest(devFileBucketName, file.getName());
-            req1.setExpiration(c.getTime());
-            URL preSignedUrl = s3Client.generatePresignedUrl(req1);
-
-            return preSignedUrl.toString();
-
         } catch (SdkClientException | IOException e) {
             e.printStackTrace();
             log.error(String.format("failed to upload Night's Watch - Ranger package file to S3 bucket %s",
@@ -332,24 +283,48 @@ public class AppOTADemoAssert {
         }
     }
 
-    private String prepareInitScript(String preSignedCredentialsPackageURL,
-                                     String preSignedRangerPackageURL) throws IOException {
-        String scriptDstPath = System.getProperty("user.dir") + "/target/app-ota-demo/init-script";
+    private String getPreSignedUrl(final String bucketName, final String objectName) {
+        AmazonS3 s3Client = AmazonS3ClientBuilder.standard().build();
+
+        log.debug("connected to AWS S3 service");
+
+        Calendar c = Calendar.getInstance();
+        c.setTime(new Date());  // now
+        c.add(Calendar.DATE, 7);  // one week
+
+        GeneratePresignedUrlRequest req = new GeneratePresignedUrlRequest(bucketName, objectName);
+        req.setExpiration(c.getTime());
+        URL preSignedURL = s3Client.generatePresignedUrl(req);
+
+        return preSignedURL.toString();
+    }
+
+    private String getPreSignedCredentialsPackageUrl(final String devFileBucketName) {
+        return this.getPreSignedUrl(devFileBucketName, AppOTADemoAssert.CREDENTIALS_FILE_NAME);
+    }
+
+    private String getPreSignedRangerPackageUrl(final String devFileBucketName) {
+        return this.getPreSignedUrl(devFileBucketName, AppOTADemoAssert.RANGER_PKG_FILE_NAME);
+    }
+
+    private String prepareSetupScript(String preSignedCredentialsPackageURL,
+                                      String preSignedRangerPackageURL) throws IOException {
+        String scriptDstPath = System.getProperty("user.dir") + "/target/app-ota-demo/setup-script";
 
         File scriptDstPathFile = new File(scriptDstPath);
         FileUtils.deleteDirectory(scriptDstPathFile);
         boolean ok = scriptDstPathFile.mkdirs();
         if (!ok)
             throw new IOException(String.format(
-                    "failed to create IoT device init script directory at %s", scriptDstPath));
+                    "failed to create IoT device setup script directory at %s", scriptDstPath));
 
-        String scriptDstFilePath = String.format("%s/%s", scriptDstPath, INIT_SCRIPT_FILE_NAME);
+        String scriptDstFilePath = String.format("%s/%s", scriptDstPath, SETUP_SCRIPT_FILE_NAME);
 
-        String scriptSrcFileName = String.format("nw-app-ota-demo/%s", INIT_SCRIPT_FILE_NAME);
+        String scriptSrcFileName = String.format("nw-app-ota-demo/%s", SETUP_SCRIPT_FILE_NAME);
         URL scriptSrc = getClass().getClassLoader().getResource(scriptSrcFileName);
         if (scriptSrc == null)
             throw new IllegalArgumentException(
-                    String.format("init script file %s not found", scriptSrcFileName));
+                    String.format("setup script file %s not found", scriptSrcFileName));
 
         String script = new String(scriptSrc.openStream().readAllBytes());
 
@@ -360,12 +335,12 @@ public class AppOTADemoAssert {
         out.print(script);
         out.close();
 
-        log.info(String.format("init script of the IoT device are prepared at %s", scriptDstFilePath));
+        log.info(String.format("setup script of the IoT device are prepared at %s", scriptDstFilePath));
 
         return scriptDstFilePath;
     }
 
-    private String uploadInitScript(final String devFileBucketName, String scriptFilePath) {
+    private void uploadSetupScript(final String devFileBucketName, String scriptFilePath) {
         try {
             AmazonS3 s3Client = AmazonS3ClientBuilder.standard().build();
 
@@ -376,28 +351,21 @@ public class AppOTADemoAssert {
             ObjectMetadata metadata = new ObjectMetadata();
             metadata.setContentType("application/octet-stream");
 
-            log.debug(String.format("uploading init script file %s ...", file.getName()));
+            log.debug(String.format("uploading setup script file %s ...", file.getName()));
 
             s3Client.putObject(req);
 
-            log.info(String.format("init script file %s uploaded to the bucket %s",
+            log.info(String.format("setup script file %s uploaded to the bucket %s",
                     file.getName(), devFileBucketName));
-
-            Calendar c = Calendar.getInstance();
-            c.setTime(new Date());  // now
-            c.add(Calendar.DATE, 7);  // one week
-
-            GeneratePresignedUrlRequest req1 = new GeneratePresignedUrlRequest(devFileBucketName, file.getName());
-            req1.setExpiration(c.getTime());
-            URL preSignedUrl = s3Client.generatePresignedUrl(req1);
-
-            return preSignedUrl.toString();
-
         } catch (SdkClientException e) {
             e.printStackTrace();
-            log.error(String.format("failed to upload init script file to S3 bucket %s", devFileBucketName));
+            log.error(String.format("failed to upload setup script file to S3 bucket %s", devFileBucketName));
             throw e;
         }
+    }
+
+    private String getPreSignedSetupScriptUrl(final String devFileBucketName) {
+        return this.getPreSignedUrl(devFileBucketName, AppOTADemoAssert.SETUP_SCRIPT_FILE_NAME);
     }
 
     private void deactivateThingCert(String certId) {

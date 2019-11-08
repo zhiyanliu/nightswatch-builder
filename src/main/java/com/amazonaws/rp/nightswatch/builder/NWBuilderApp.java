@@ -7,11 +7,10 @@ import software.amazon.awscdk.core.Environment;
 import software.amazon.awscdk.core.StackProps;
 
 public class NWBuilderApp {
-    private static Logger log = LoggerFactory.getLogger("nightswatch-builder");
+    private static final Logger log = LoggerFactory.getLogger("nightswatch-builder");
 
-    private static final String appOTADemoIoTStackName = "nightswatch-app-ota-demo-iot";
-
-    private static final String appOTADemoDeviceStackName = "nightswatch-app-ota-demo-dev";
+    private static final String APP_OTA_DEMO_IOT_STACK_NAME = "nightswatch-app-ota-demo-iot";
+    private static final String APP_OTA_DEMO_DEVICE_STACK_NAME = "nightswatch-app-ota-demo-dev";
 
     public static void main(final String[] argv) throws Exception {
         if (argv.length == 0) {
@@ -27,18 +26,25 @@ public class NWBuilderApp {
             StackProps props = StackProps.builder()
                     .withEnv(Environment.builder().withRegion(region).build())
                     .build();
-            new AppOTADemoIoTStack(cdkApp, appOTADemoIoTStackName, props);
-            new AppOTADemoDeviceStack(cdkApp, appOTADemoDeviceStackName, props);
+            new AppOTADemoIoTStack(cdkApp, APP_OTA_DEMO_IOT_STACK_NAME, props);
+            new AppOTADemoDeviceStack(cdkApp, APP_OTA_DEMO_DEVICE_STACK_NAME, props);
 
             // required until https://github.com/awslabs/jsii/issues/456 is resolve
             cdkApp.synth();
         } else if ("app-ota-demo".equals(argv[0])) {
-            if (argv.length == 2 && "prepare-asset".equals(argv[1])) {
-                new AppOTADemoAssert().provision(appOTADemoIoTStackName);
-            } else if (argv.length == 2 && "cleanup-asset".equals(argv[1])) {
-                new AppOTADemoAssert().deProvision(appOTADemoIoTStackName);
-            } else {
-                log.error("invalid demo command");
+            try {
+                if (argv.length == 2 && "prepare-asset".equals(argv[1])) {
+                    new AppOTADemoAssert().provision(APP_OTA_DEMO_IOT_STACK_NAME);
+                } else if (argv.length == 2 && "cleanup-asset".equals(argv[1])) {
+                    new AppOTADemoAssert().deProvision(APP_OTA_DEMO_IOT_STACK_NAME);
+                } else if (argv.length == 2 && "prepare-app-v1".equals(argv[1])) {
+
+                } else {
+                    log.error("invalid demo command");
+                }
+            } catch (Exception e) {
+                log.error(e.getMessage());
+                System.exit(255);
             }
         } else {
             log.error("invalid parameter, refer document");

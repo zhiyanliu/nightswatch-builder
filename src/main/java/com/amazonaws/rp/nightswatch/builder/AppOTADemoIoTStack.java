@@ -23,7 +23,7 @@ import java.util.Objects;
 import java.util.Random;
 
 public class AppOTADemoIoTStack extends Stack {
-    private static Logger log = LoggerFactory.getLogger("nightswatch-app-ota-demo-iot-stack");
+    private final Logger log = LoggerFactory.getLogger("nightswatch-app-ota-demo-iot-stack");
 
     private final static ObjectMapper JSON =
             new ObjectMapper().configure(SerializationFeature.INDENT_OUTPUT, true);
