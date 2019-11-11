@@ -37,7 +37,7 @@ This document means to give you a guide to produce an easy-to-show demonstration
 
     - ``java -jar target/nightswatch-builder-1.0-SNAPSHOT-jar-with-dependencies.jar app-ota-demo prepare-asset``
 
-## 2. Create fake IoT device for demo if you have no own device (optional)
+## 2. Create fake IoT device for demo if you have no an own device (optional)
 
 >>**Note:**
 >>
@@ -45,13 +45,13 @@ This document means to give you a guide to produce an easy-to-show demonstration
 >>
 >> Skip this step if you have a real one, you can get certificates and credentials in the S3 bucket (the bucket name is provided by output `nightswatch-app-ota-demo-iot.devfilesbucketname` after the stack deployment), and deploy and run Night's Watch - Ranger by yourself.
 >>
->> If you do not have a device, you can follow this step to deploy an EC2 instance to act the IoT device, Night's Watch - Builder will automatically deploy and configure Ranger for you.
+>> If you do not have a x64 architecture device (current built-in demo application is x64 arch ELF), you can follow this step to deploy an EC2 instance to act the IoT device easily, Night's Watch - Builder will automatically deploy and configure Ranger for you.
 
 - `cdk deploy nightswatch-app-ota-demo-dev -c ec2-key-name=<key-pair-name> -c ec2-image-id=<ec2-image-id> -c ec2-setup-script-url-base64=<setup-script-file-URL-base64>`
 
     - Update `setup-script-file-URL-base64` parameter with `setup script file URL (base64)` output from above step.
     - Update `ec2-image-id` parameter in follow command to provide correct image contains Ubuntu 18.04lts x64 operation system in your region. E.g. as the default value, image `ami-0cd744adeca97abb1` is used for region `ap-northeast-1`.
-    - Update `key-pair-name` parameter in follow command to provide SSH key pair to inject the public key to the EC2 instance, if you would like to use `ssh` login in it for debug.
+    - Update `key-pair-name` parameter in follow command to provide SSH key pair to inject the public key to the EC2 instance, if you would like to use `ssh` login it, to debug or check log for example.
 
 ## 3. Execute Application deployment and update job
 
@@ -67,7 +67,7 @@ This document means to give you a guide to produce an easy-to-show demonstration
 >> Application version 2 outputs data `*,*,yello` to the MQTT topic `/qbr/demo/lcd` periodically.
 >>
 >> Additional, you can subscribe the MQTT topic `nw/apps/nw-app-ota-demo-dev/event` and `nw/apps/nw-app-ota-demo-dev/log` to monitor application's common resource usage indicators and `stdout` `stderr` outputs.
-
+>
 >>**Note:**
 >>
 >> You can use follow commands to describe application deployment and update progress in detail:
