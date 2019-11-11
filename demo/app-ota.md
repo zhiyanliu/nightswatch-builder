@@ -1,4 +1,4 @@
-This document means to give you an guide to produce an easy-to-show demonstration about application OTA based on Night's Watch project.
+This document means to give you a guide to produce an easy-to-show demonstration about application OTA based on Night's Watch project.
 
 ## 0. Pre-condition
 
@@ -42,7 +42,9 @@ This document means to give you an guide to produce an easy-to-show demonstratio
 >>**Note:**
 >>
 >> You need an IoT device to act the "thing" to deploy the application and demo the OTA operation in this demo via Night's Watch - Ranger daemon program.
+>>
 >> Skip this step if you have a real one, you can get certificates and credentials in the S3 bucket (the bucket name is provided by output `nightswatch-app-ota-demo-iot.devfilesbucketname` after the stack deployment), and deploy and run Night's Watch - Ranger by yourself.
+>>
 >> If you do not have a device, you can follow this step to deploy an EC2 instance to act the IoT device, Night's Watch - Builder will automatically deploy and configure Ranger for you.
 
 - `cdk deploy nightswatch-app-ota-demo-dev -c ec2-key-name=<key-pair-name> -c ec2-image-id=<ec2-image-id> -c ec2-setup-script-url-base64=<setup-script-file-URL-base64>`
@@ -54,9 +56,17 @@ This document means to give you an guide to produce an easy-to-show demonstratio
 ## 3. Execute Application deployment and update job
 
 - ``java -jar target/nightswatch-builder-1.0-SNAPSHOT-jar-with-dependencies.jar app-ota-demo prepare-app-v1``
-- Execute ``aws iot create-job`` command provided by `application deployment command line` output from above step.
+- Execute ``aws iot create-job`` command provided by output `application deployment command line` from above step. This job is used to deploy application version 1.
 - ``java -jar target/nightswatch-builder-1.0-SNAPSHOT-jar-with-dependencies.jar app-ota-demo prepare-app-v2``
-- Execute ``aws iot create-job`` command provided by `application deployment command line` output from above step.
+- Execute ``aws iot create-job`` command provided by output `application deployment command line` from above step. This job is used to deploy application version 2.
+
+>>**The different between application version 1 and 2:**
+>>
+>> Application version 1 outputs data `*,*,red` to the MQTT topic `/qbr/demo/lcd` periodically.
+>>
+>> Application version 2 outputs data `*,*,yello` to the MQTT topic `/qbr/demo/lcd` periodically.
+>>
+>> Additional, you can subscribe the MQTT topic `nw/apps/nw-app-ota-demo-dev/event` and `nw/apps/nw-app-ota-demo-dev/log` to monitor application's common resource usage indicators and `stdout` `stderr` outputs.
 
 >>**Note:**
 >>
