@@ -31,6 +31,14 @@ Additional, if you would like to try demonstration, it will not work if:
 
 * Your AWS account user has not right to fully access AWS EC2 and VPC service, whatever in China or WW AWS region.
 
+>>**Preferred software version:**
+>>
+>> - Apache Maven: 3.5.4, or above
+>> - Java: 13.0.1 2019-10-15 (build 13.0.1+9), or above
+>> - node: v12.12.0, or above
+>> - node: 6.11.3, or above
+>> - CDK: 1.15.0 (build bdbe3aa), or above
+
 ## How to build
 
 // TODO(zhiyan)
