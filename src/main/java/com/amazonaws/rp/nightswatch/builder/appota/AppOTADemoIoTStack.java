@@ -43,7 +43,7 @@ public class AppOTADemoIoTStack extends Stack {
         this(parent, id, null);
     }
 
-    AppOTADemoIoTStack(final Construct parent, final String id, final StackProps props) throws IOException {
+    public AppOTADemoIoTStack(final Construct parent, final String id, final StackProps props) throws IOException {
         super(parent, id, props);
 
         Random rand = new Random();

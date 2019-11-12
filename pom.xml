@@ -29,7 +29,7 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>1.6.0</version>
                 <configuration>
-                    <mainClass>com.amazonaws.rp.nightswatch.builder.appota.NWBuilderApp</mainClass>
+                    <mainClass>com.amazonaws.rp.nightswatch.builder.NWBuilderApp</mainClass>
                 </configuration>
             </plugin>
 
@@ -45,7 +45,7 @@
                         <configuration>
                             <archive>
                                 <manifest>
-                                    <mainClass>com.amazonaws.rp.nightswatch.builder.appota.NWBuilderApp</mainClass>
+                                    <mainClass>com.amazonaws.rp.nightswatch.builder.NWBuilderApp</mainClass>
                                 </manifest>
                             </archive>
                             <descriptorRefs>

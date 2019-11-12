@@ -22,7 +22,7 @@ public class AppOTADemoDeviceStack extends Stack {
         this(parent, id, null);
     }
 
-    AppOTADemoDeviceStack(final Construct parent, final String id, final StackProps props) {
+    public AppOTADemoDeviceStack(final Construct parent, final String id, final StackProps props) {
         super(parent, id, props);
 
         Object ec2DeviceImageIDObj = this.getNode().tryGetContext("ec2-image-id");

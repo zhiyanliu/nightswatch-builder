@@ -41,7 +41,9 @@ Additional, if you would like to try demonstration, it will not work if:
 
 ## How to build
 
-// TODO(zhiyan)
+1. ``git clone git@git.awsrun.com:rp/nightswatch-builder.git``
+2. ``cd nightswatch-builder``
+3. ``mvn package``
 
 ## How to demonstration
 

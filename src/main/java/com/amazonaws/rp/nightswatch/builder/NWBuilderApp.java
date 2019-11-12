@@ -1,5 +1,6 @@
-package com.amazonaws.rp.nightswatch.builder.appota;
+package com.amazonaws.rp.nightswatch.builder;
 
+import com.amazonaws.rp.nightswatch.builder.appota.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awscdk.core.App;
