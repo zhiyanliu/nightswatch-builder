@@ -66,7 +66,7 @@ This document means to give you a guide to produce an easy-to-show demonstration
 >>
 >> Application version 2 outputs data `*,*,yello` to the MQTT topic `/qbr/demo/lcd` periodically.
 >>
->> Additional, you can subscribe the MQTT topic `nw/apps/nw-app-ota-demo-dev/event` and `nw/apps/nw-app-ota-demo-dev/log` to monitor application's common resource usage indicators and `stdout` `stderr` outputs.
+>> Additional, you can subscribe the MQTT topic `nw/apps/app_xxx/event` and `nw/apps/app_xxx/log` to monitor application's common resource usage indicators and `stdout` `stderr` outputs.
 >
 >>**Note:**
 >>

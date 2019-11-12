@@ -6,7 +6,9 @@ import org.slf4j.LoggerFactory;
 import software.amazon.awscdk.core.*;
 import software.amazon.awscdk.services.ec2.*;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 public class AppOTADemoDeviceStack extends Stack {
     private final Logger log = LoggerFactory.getLogger("nightswatch-app-ota-demo-device-stack");
@@ -113,18 +115,23 @@ public class AppOTADemoDeviceStack extends Stack {
     }
 
     private CfnSecurityGroup createSecurityGroup(CfnVPC vpc) {
-        CfnSecurityGroup.IngressProperty ingressProperty = CfnSecurityGroup.IngressProperty.builder()
-                .withCidrIp("0.0.0.0/0")
-                .withIpProtocol("TCP")
-                .withFromPort(22)
-                .withToPort(22)  // open SSH
-                .build();
+        List<Object> ingressRules = new ArrayList<>();
+
+        if (this.ec2KeyName != null) {
+            CfnSecurityGroup.IngressProperty ingressProperty = CfnSecurityGroup.IngressProperty.builder()
+                    .withCidrIp("0.0.0.0/0")
+                    .withIpProtocol("TCP")
+                    .withFromPort(22)
+                    .withToPort(22)  // open SSH
+                    .build();
+            ingressRules.add(ingressProperty);
+        }
 
         return new CfnSecurityGroup(this, "nw-app-ota-demo-sg", CfnSecurityGroupProps.builder()
                 .withGroupName("nw-app-ota-demo-sg")
                 .withGroupDescription("Nights Watch App OTA demo security group.")
                 .withVpcId(vpc.getRef())
-                .withSecurityGroupIngress(Arrays.asList(ingressProperty))
+                .withSecurityGroupIngress(ingressRules)
                 .build());
     }
 

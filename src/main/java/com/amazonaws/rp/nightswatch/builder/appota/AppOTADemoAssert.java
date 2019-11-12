@@ -423,5 +423,7 @@ public class AppOTADemoAssert {
         // delete the potential existing jobs might related to the thing
         this.jobDeleter.delete(this.log, AppOTADemoApplication.APP_V1_DEPLOY_JOB_ID);
         this.jobDeleter.delete(this.log, AppOTADemoApplication.APP_V2_DEPLOY_JOB_ID);
+        this.jobDeleter.delete(this.log, AppOTADemoApplication.APP_V1_DESTROY_JOB_ID);
+        this.jobDeleter.delete(this.log, AppOTADemoApplication.APP_V2_DESTROY_JOB_ID);
     }
 }
