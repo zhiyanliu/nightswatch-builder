@@ -45,9 +45,9 @@ Additional, if you would like to try demonstration, it will not work if:
 2. ``cd nightswatch-builder``
 3. ``mvn package``
 
-## How to demonstration
+## How to play demonstration
 
-- Containerized and non-containerized application OTA demo guide: [here](http://git.awsrun.com/rp/nightswatch-builder/blob/master/demo/app-ota.md)
+- Containerized and non-containerized application OTA play guide: [here](http://git.awsrun.com/rp/nightswatch-builder/blob/master/demo/app-ota.md)
 
 ## Key TODO plan:
 
