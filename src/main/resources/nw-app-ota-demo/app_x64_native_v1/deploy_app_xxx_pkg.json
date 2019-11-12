@@ -1,0 +1,9 @@
+{
+  "operate": "deploy_app_pkg",
+  "app_name": "app_xxx",
+  "pkg_url": "${aws:iot:s3-presigned-url:https://s3.amazonaws.com/<BUCKET_NAME>/app_xxx_pkg_native_v1.tar.gz}",
+  "pkg_md5": "4be8a63ae8b86fb70a9a30981be6be34",
+  "app_args": "entry.sh",
+  "force": false,
+  "use_container": false
+}

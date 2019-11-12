@@ -43,6 +43,10 @@ public class NWBuilderApp {
                     new AppOTADemoApplication().provisionV1(APP_OTA_DEMO_IOT_STACK_NAME, "x64", "containerized");
                 } else if (argv.length == 2 && "prepare-app-v2".equals(argv[1])) {
                     new AppOTADemoApplication().provisionV2(APP_OTA_DEMO_IOT_STACK_NAME, "x64", "containerized");
+                } else if (argv.length == 2 && "prepare-native-app-v1".equals(argv[1])) {
+                    new AppOTADemoApplication().provisionV1(APP_OTA_DEMO_IOT_STACK_NAME, "x64", "native");
+                } else if (argv.length == 2 && "prepare-native-app-v2".equals(argv[1])) {
+                    new AppOTADemoApplication().provisionV2(APP_OTA_DEMO_IOT_STACK_NAME, "x64", "native");
                 } else {
                     log.error("invalid demo command");
                 }
