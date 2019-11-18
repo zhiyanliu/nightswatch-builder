@@ -10,7 +10,7 @@ Mainly, and currently, Night's Watch - Builder provides two functions:
 
 ## Why [we](mailto:awscn-sa-prototyping@amazon.com) develop it
 
-As the pair project of [Night's Watch - Range](http://git.awsrun.com/rp/nightswatch-ranger), we would like to automatize the IoT resources create and configuration, more over, to easy the demonstration of Ranger supported OTA cases. We hope this project can assist SA understand and use our reusable asset quickly and correctly.
+As the pair project of [Night's Watch - Range](http://git.awsrun.com/rp/nightswatch-ranger), we would like to automatize the IoT resources create and configuration, more over, to easy the demonstration of Ranger supported OTA cases. We hope this project can assist SA to understand and use our reusable asset quickly and correctly.
 
 >> **Note:**
 >>
