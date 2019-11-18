@@ -5,7 +5,7 @@ This is the code repository of the AWS RP IoT device [OTA](https://en.wikipedia.
 Mainly, and currently, Night's Watch - Builder provides two functions:
 
 1. Automatize the IoT resource and demonstration stack deployment, powered by AWS CDK and CloudFormation service.
-2. As a control panel to maximize the automation of the OTA demonstration. Supported demo listed as following:
+2. As a control plane to maximize the automation of the OTA demonstration. Supported demo listed as following:
     - Containerized and non-containerized application OTA
 
 ## Why [we](mailto:awscn-sa-prototyping@amazon.com) develop it
