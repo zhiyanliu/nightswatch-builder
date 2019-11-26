@@ -33,6 +33,7 @@ public class AppOTADemoIoTStack extends Stack {
     private final static String CSR_NAME = "nw-app-ota-demo-dev-csr";
     private final static String CERT_NAME = "nw-app-ota-demo-dev-cert";
     private final static String JOB_DOC_BUCKET_NAME = "nw-app-ota-demo-job-docs";
+    private final static String S3_PRESIGN_ROLE_NAME = "nw-app-ota-demo-s3-presign-role";
 
     private final static String DEVICE_FILE_BUCKET_NAME = "nw-app-ota-demo-dev-files";
 
@@ -62,15 +63,13 @@ public class AppOTADemoIoTStack extends Stack {
 
     private CfnPolicy createThingPolicy() throws IOException {
         // Create a policy
-        CfnPolicy policy;
-
         String fileName = String.format("nw-app-ota-demo/%s.json", POLICY_NAME);
         URL inlinePolicyDoc = getClass().getClassLoader().getResource(fileName);
         if (inlinePolicyDoc == null)
             throw new IllegalArgumentException(String.format("the policy statement file %s not found", fileName));
         JsonNode node = JSON.readTree(inlinePolicyDoc);
 
-        policy = new CfnPolicy(this, POLICY_NAME, CfnPolicyProps.builder()
+        CfnPolicy policy = new CfnPolicy(this, POLICY_NAME, CfnPolicyProps.builder()
                 .withPolicyName(POLICY_NAME)
                 .withPolicyDocument(node)
                 .build());
@@ -106,13 +105,11 @@ public class AppOTADemoIoTStack extends Stack {
 
     private void createThingCert(CfnPolicy policy, CfnThing thing) throws IOException {
         // Load CSR
-        String csrPem;
-
         String fileName = String.format("nw-app-ota-demo/%s.pem", CSR_NAME);
         URL inlineCSRPem = getClass().getClassLoader().getResource(fileName);
         if (inlineCSRPem == null)
             throw new IllegalArgumentException(String.format("CSR file %s not found", fileName));
-        csrPem = new String(inlineCSRPem.openStream().readAllBytes());
+        String csrPem = new String(inlineCSRPem.openStream().readAllBytes());
 
         // Create a certificate
         CfnCertificate cert = new CfnCertificate(this, CERT_NAME, CfnCertificateProps.builder()
@@ -163,7 +160,7 @@ public class AppOTADemoIoTStack extends Stack {
 
     private void createPreSignRole() {
         // Create an IAM role for pre-sign the file stored as a S3 object
-        Role iotPreSignS3Role = new Role(this, "IoTPreSignS3ObjectRole", RoleProps.builder()
+        Role iotPreSignS3Role = new Role(this, S3_PRESIGN_ROLE_NAME, RoleProps.builder()
                 .withAssumedBy(new ServicePrincipal("iot.amazonaws.com"))
                 .withPath("/service-role/")
                 .withManagedPolicies(Lists.newArrayList(
