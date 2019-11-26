@@ -173,7 +173,7 @@ public class AppOTADemoIoTStack extends Stack {
                 .build());
     }
 
-    private Bucket createDeviceFileS3Bucket() {
+    private void createDeviceFileS3Bucket() {
         Bucket devFileBucket = new Bucket(this, this.deviceFileBucketName, BucketProps.builder()
                 .withBlockPublicAccess(new BlockPublicAccess(BlockPublicAccessOptions.builder()
                         .withBlockPublicAcls(false)
@@ -190,7 +190,5 @@ public class AppOTADemoIoTStack extends Stack {
                 .withDescription(
                         "the name of s3 bucket to save device assert files to act IoT device for NW app OTA demo")
                 .build());
-
-        return devFileBucket;
     }
 }
