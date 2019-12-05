@@ -8,17 +8,17 @@ This document means to give you a guide to produce an easy-to-show demonstration
 
 >>**Note:**
 >>
->> Night's Watch - Build does not require user input any AWS credentials, instead, the default configuration and credentials will be loaded from ``~/.aws/config`` and ``~/.aws/credentials`` automatically.
+>> Night's Watch - Build does not require user input any AWS credentials, instead, the default configuration and credentials will be loaded from ``~/.aws/config`` and ``~/.aws/credentials`` automatically, , you can configure them by command ``aws configure``.
 
 ## 1. Deploy IoT core stack
-
-- Provision IoT core stack
-
-    - ``cdk deploy nightswatch-app-ota-demo-iot``
 
 >>**Note:**
 >>
 >> All `cdk` and `java` command listed in this guide need you to change current working directory to Night's Watch - Builder code repository directory first.
+
+- Provision IoT core stack
+
+    - ``cdk deploy nightswatch-app-ota-demo-iot``
 
 - Prepare Night's Watch - Ranger package
 
@@ -41,28 +41,28 @@ This document means to give you a guide to produce an easy-to-show demonstration
 
 >>**Note:**
 >>
->> You need an IoT device to act the "thing" to deploy the application and demo the OTA operation in this demo via Night's Watch - Ranger daemon program.
+>> You need an IoT device to act the "thing" to deploy the application and demo the OTA operation via Night's Watch - Ranger daemon program.
 >>
->> Skip this step if you have a real one, you can get certificates and credentials in the S3 bucket (the bucket name is provided by output `nightswatch-app-ota-demo-iot.devfilesbucketname` after the stack deployment), and deploy and run Night's Watch - Ranger by yourself.
+>> Skip this step if you have a real one, you can get certificates and credentials in the S3 bucket (the bucket name is provided by output `nightswatch-app-ota-demo-iot.devfilesbucketname` after the stack deployment), then deploy and run Night's Watch - Ranger by yourself.
 >>
 >> If you do not have a x64 architecture device (current built-in demo application and containerization facility is x64 architecture), you can follow this step to deploy an EC2 instance to act the IoT device easily, Night's Watch - Builder will automatically deploy and configure Ranger for you.
 
 - `cdk deploy nightswatch-app-ota-demo-dev -c ec2-key-name=<key-pair-name> -c ec2-image-id=<ec2-image-id> -c ec2-setup-script-url-base64=<setup-script-file-URL-base64>`
 
     - Update `setup-script-file-URL-base64` parameter with `setup script file URL (base64)` output from above step.
-    - Update `ec2-image-id` parameter in follow command to provide correct image contains Ubuntu 18.04lts x64 operation system in your region. E.g. as the default value, image `ami-0cd744adeca97abb1` is used for region `ap-northeast-1`.
-    - Update `key-pair-name` parameter in follow command to provide SSH key pair to inject the public key to the EC2 instance, if you would like to use `ssh` login it, to debug or check log for example.
+    - Update `ec2-image-id` parameter in above command to provide correct image contains Ubuntu 18.04lts x64 operation system in your region. E.g. as the default value, image `ami-0cd744adeca97abb1` is used for region `ap-northeast-1`.
+    - Update `key-pair-name` parameter in above command to provide SSH key pair to inject the public key to the EC2 instance, if you would like to use `ssh` login it, to debug or check log for example.
 
 ## 3. Execute Application deployment and update job
 
-- Containerized application deployment and update
+- For containerized application deployment and update:
 
     - ``java -jar target/nightswatch-builder-1.0-SNAPSHOT-jar-with-dependencies.jar app-ota-demo prepare-app-v1``
     - Execute ``aws iot create-job`` command provided by output `application deployment command line` from above step. This job is used to deploy application version 1.
     - ``java -jar target/nightswatch-builder-1.0-SNAPSHOT-jar-with-dependencies.jar app-ota-demo prepare-app-v2``
     - Execute ``aws iot create-job`` command provided by output `application deployment command line` from above step. This job is used to deploy application version 2.
 
-- Non-containerized application deployment and update
+- For non-containerized application deployment and update:
 
     - ``java -jar target/nightswatch-builder-1.0-SNAPSHOT-jar-with-dependencies.jar app-ota-demo prepare-native-app-v1``
     - Execute ``aws iot create-job`` command provided by output `application deployment command line` from above step. This job is used to deploy application version 1.

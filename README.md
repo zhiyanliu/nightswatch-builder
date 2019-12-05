@@ -29,13 +29,13 @@ If you would like to try automatic IoT resource stack deployment, this project d
 
 Additional, if you would like to try demonstration, it will not work if:
 
-* Your AWS account user has not right to fully access AWS EC2 and VPC service, whatever in China or WW AWS region.
+* Your AWS account user has not right to fully access AWS EC2 and VPC service in WW and China AWS region.
 
 >>**Preferred software version:**
 >>
 >> - Apache Maven: 3.5.4, or above
 >> - Java: 13.0.1 2019-10-15 (build 13.0.1+9), or above
->> - node: v12.12.0, or above
+>> - node: v12.12.0, or above but less than 13.2.0 before the [issue](https://github.com/aws/aws-cdk/issues/5187) is fixed.
 >> - npm: 6.13.0, or above
 >> - CDK: 1.16.1 (build bdbe3aa), or above
 
