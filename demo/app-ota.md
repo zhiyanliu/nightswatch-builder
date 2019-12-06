@@ -16,6 +16,10 @@ This document means to give you a guide to produce an easy-to-show demonstration
 >>
 >> All `cdk` and `java` command listed in this guide need you to change current working directory to Night's Watch - Builder code repository directory first.
 
+- Cleanup last context of CDK
+
+    - ``cdk context --clear``
+
 - Provision IoT core stack
 
     - ``cdk deploy nightswatch-app-ota-demo-iot``
@@ -25,9 +29,9 @@ This document means to give you a guide to produce an easy-to-show demonstration
     - ``java -jar target/nightswatch-builder-1.0-SNAPSHOT-jar-with-dependencies.jar app-ota-demo service-endpoint``
     - You will get `IoT service endpoint` output by above step, update `AWS_IOT_MQTT_HOST` value in [`aws_iot_config.h`](http://git.awsrun.com/rp/nightswatch-ranger/blob/master/aws_iot_config.h#L15) in Night's Watch - Ranger code repository follow [this step](http://git.awsrun.com/rp/nightswatch-ranger#device-client-parameter-configuration).
     - Build Night's Watch - Ranger follow [this step](http://git.awsrun.com/rp/nightswatch-ranger#basic) on a x64 architecture host.
-    - Organize Night's Watch - Ranger deployment directory by [this step](http://git.awsrun.com/rp/nightswatch-ranger#deployment-directory-structure).
-    - Package Night's Watch - Ranger deployment by command ``tar czf nightswatch-ranger.tar.gz <nightswatch-ranger-deployment-directory>``.
-    - Save the tar ball to `<nightswatch-builder-code-repo>/src/main/resources/nightswatch-ranger_x64` directory.
+    - Organize Night's Watch - Ranger deployment directory by [this step](http://git.awsrun.com/rp/nightswatch-ranger#deployment-directory-structure). Note, you need to name the deployment directory `<NIGHTS_WATCH_RANGER_HOME_DIR>` to `nightswatch-ranger`.
+    - Package Night's Watch - Ranger deployment by command ``tar czf nightswatch-ranger.tar.gz nightswatch-ranger``.
+    - Save the tar ball to `src/main/resources/nightswatch-ranger_x64` directory.
 
 - Re-build Night's Watch - Builder to update inline resource
 
@@ -41,17 +45,16 @@ This document means to give you a guide to produce an easy-to-show demonstration
 
 >>**Note:**
 >>
->> You need an IoT device to act the "thing" to deploy the application and demo the OTA operation via Night's Watch - Ranger daemon program.
+>> You need an IoT thing to act the device to deploy the application and demo the OTA operation via Night's Watch - Ranger daemon program.
 >>
 >> Skip this step if you have a real one, you can get certificates and credentials in the S3 bucket (the bucket name is provided by output `nightswatch-app-ota-demo-iot.devfilesbucketname` after the stack deployment), then deploy and run Night's Watch - Ranger by yourself.
 >>
 >> If you do not have a x64 architecture device (current built-in demo application and containerization facility is x64 architecture), you can follow this step to deploy an EC2 instance to act the IoT device easily, Night's Watch - Builder will automatically deploy and configure Ranger for you.
 
-- `cdk deploy nightswatch-app-ota-demo-dev -c ec2-key-name=<key-pair-name> -c ec2-image-id=<ec2-image-id> -c ec2-setup-script-url-base64=<setup-script-file-URL-base64>`
+- ``cdk deploy nightswatch-app-ota-demo-dev [-c ec2-key-name=<key-pair-name>] [-c ec2-image-id=<ec2-image-id>]``
 
-    - Update `setup-script-file-URL-base64` parameter with `setup script file URL (base64)` output from above step.
-    - Update `ec2-image-id` parameter in above command to provide correct image contains Ubuntu 18.04lts x64 operation system in your region. E.g. as the default value, image `ami-0cd744adeca97abb1` is used for region `ap-northeast-1`.
-    - Update `key-pair-name` parameter in above command to provide SSH key pair to inject the public key to the EC2 instance, if you would like to use `ssh` login it, to debug or check log for example.
+    - Update `ec2-image-id` optional parameter in above command to provide AMI ID to provision EC2 instance using an Ubuntu 18.04lts x64 operation system in your region, e.g. ID  `ami-0cd744adeca97abb1` can be used for region `ap-northeast-1`. CDK will lookup an Amazon official AMI contains Ubuntu 18.04lts x64 for your by default.
+    - Update `key-pair-name` optional parameter in above command to provide SSH key pair name to inject the public key to the EC2 instance, if you would like to use `ssh` login it, to debug or check log for example.
 
 ## 3. Execute Application deployment and update job
 
