@@ -1,6 +1,10 @@
 package com.amazonaws.rp.nightswatch.builder;
 
+import com.amazonaws.regions.DefaultAwsRegionProviderChain;
 import com.amazonaws.rp.nightswatch.builder.appota.*;
+import com.amazonaws.services.securitytoken.AWSSecurityTokenService;
+import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClientBuilder;
+import com.amazonaws.services.securitytoken.model.GetCallerIdentityRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awscdk.core.App;
@@ -14,21 +18,35 @@ public class NWBuilderApp {
     private static final String APP_OTA_DEMO_DEVICE_STACK_NAME = "nightswatch-app-ota-demo-dev";
 
     public static void main(final String[] argv) throws Exception {
+        String region, account;
+
+        // makes `cdk deploy` to follow region config provide by AWSSDK (`~/.aws/config`)
+        // or use the environment variables "CDK_DEFAULT_ACCOUNT" and "CDK_DEFAULT_REGION"
+        //  to inherit environment information from the CLI
+        if (System.getenv().containsKey("CDK_DEFAULT_REGION")) {
+            region = System.getenv().get("CDK_DEFAULT_REGION");
+        } else {
+            region = new DefaultAwsRegionProviderChain().getRegion();
+        }
+        if (System.getenv().containsKey("CDK_DEFAULT_ACCOUNT")) {
+            account = System.getenv().get("CDK_DEFAULT_ACCOUNT");
+        } else {
+            AWSSecurityTokenService stsClient = AWSSecurityTokenServiceClientBuilder.defaultClient();
+            account = stsClient.getCallerIdentity(new GetCallerIdentityRequest()).getAccount();
+        }
+
         if (argv.length == 0) {
-            App cdkApp = new App();
-
-            // `cdk deploy` follows region config provide by AWSSDK (`~/.aws/config`)
-            // `cdk deploy -c KEY=VALUE (array)` to add/overwrite context.
-            Object regionObj = cdkApp.getNode().tryGetContext("region");
-            String region = null;
-            if (regionObj != null)
-                region = regionObj.toString();
-
             StackProps props = StackProps.builder()
-                    .withEnv(Environment.builder().withRegion(region).build())
+                    .env(Environment.builder()
+                            .region(region)
+                            .account(account)
+                            .build())
                     .build();
+
+            App cdkApp = App.Builder.create().build();
+
             new AppOTADemoIoTStack(cdkApp, APP_OTA_DEMO_IOT_STACK_NAME, props);
-            new AppOTADemoDeviceStack(cdkApp, APP_OTA_DEMO_DEVICE_STACK_NAME, props);
+            new AppOTADemoDeviceStack(cdkApp, APP_OTA_DEMO_DEVICE_STACK_NAME, props, APP_OTA_DEMO_IOT_STACK_NAME);
 
             // required until https://github.com/awslabs/jsii/issues/456 is resolve
             cdkApp.synth();
