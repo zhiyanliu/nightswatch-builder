@@ -70,19 +70,19 @@ public class AppOTADemoIoTStack extends Stack {
         JsonNode node = JSON.readTree(inlinePolicyDoc);
 
         CfnPolicy policy = new CfnPolicy(this, POLICY_NAME, CfnPolicyProps.builder()
-                .withPolicyName(POLICY_NAME)
-                .withPolicyDocument(node)
+                .policyName(POLICY_NAME)
+                .policyDocument(node)
                 .build());
 
         // Output the policy configuration
         new CfnOutput(this, "policy-name", CfnOutputProps.builder()
-                .withValue(Objects.requireNonNull(policy.getPolicyName()))
-                .withDescription("the policy name for NW app OTA demo")
+                .value(Objects.requireNonNull(policy.getPolicyName()))
+                .description("the policy name for NW app OTA demo")
                 .build());
 
         new CfnOutput(this, "policy-arn", CfnOutputProps.builder()
-                .withValue(policy.getAttrArn())
-                .withDescription("the policy arn for NW app OTA demo")
+                .value(policy.getAttrArn())
+                .description("the policy arn for NW app OTA demo")
                 .build());
 
         return policy;
@@ -91,13 +91,13 @@ public class AppOTADemoIoTStack extends Stack {
     private CfnThing createThing() {
         // Create a thing
         CfnThing thing = new CfnThing(this, THING_NAME, CfnThingProps.builder()
-                .withThingName(THING_NAME)
+                .thingName(THING_NAME)
                 .build());
 
         // Output the thing configuration
         new CfnOutput(this, "thing-name", CfnOutputProps.builder()
-                .withValue(Objects.requireNonNull(thing.getThingName()))
-                .withDescription("the thing name for NW app OTA demo")
+                .value(Objects.requireNonNull(thing.getThingName()))
+                .description("the thing name for NW app OTA demo")
                 .build());
 
         return thing;
@@ -113,8 +113,8 @@ public class AppOTADemoIoTStack extends Stack {
 
         // Create a certificate
         CfnCertificate cert = new CfnCertificate(this, CERT_NAME, CfnCertificateProps.builder()
-                .withCertificateSigningRequest(csrPem)
-                .withStatus("ACTIVE")
+                .certificateSigningRequest(csrPem)
+                .status("ACTIVE")
                 .build());
 
         cert.addDependsOn(policy);
@@ -123,71 +123,71 @@ public class AppOTADemoIoTStack extends Stack {
         // Attach the policy to the certificate
         new CfnPolicyPrincipalAttachment(this, "nw-app-ota-demo-policy2cert",
                 CfnPolicyPrincipalAttachmentProps.builder()
-                        .withPolicyName(POLICY_NAME)
-                        .withPrincipal(cert.getAttrArn())
+                        .policyName(POLICY_NAME)
+                        .principal(cert.getAttrArn())
                         .build());
 
         // Attach the certificate to the thing
         new CfnThingPrincipalAttachment(this, "nw-app-ota-demo-cert2thing", CfnThingPrincipalAttachmentProps.builder()
-                .withThingName(THING_NAME)
-                .withPrincipal(cert.getAttrArn())
+                .thingName(THING_NAME)
+                .principal(cert.getAttrArn())
                 .build());
 
         // Output the thing configuration
         new CfnOutput(this, "cert-id", CfnOutputProps.builder()
-                .withValue(cert.getRef())
-                .withDescription("the thing certificate ID for NW app OTA demo")
+                .value(cert.getRef())
+                .description("the thing certificate ID for NW app OTA demo")
                 .build());
 
         new CfnOutput(this, "cert-arn", CfnOutputProps.builder()
-                .withValue(cert.getAttrArn())
-                .withDescription("the thing certificate ARN for NW app OTA demo")
+                .value(cert.getAttrArn())
+                .description("the thing certificate ARN for NW app OTA demo")
                 .build());
     }
 
     private void createJobDocS3Bucket() {
         // Create a S3 bucket for job document
         Bucket jobDocBucket = new Bucket(this, this.jobDocBucketName, BucketProps.builder()
-                .withRemovalPolicy(RemovalPolicy.DESTROY)
-                .withBucketName(this.jobDocBucketName)
+                .removalPolicy(RemovalPolicy.DESTROY)
+                .bucketName(this.jobDocBucketName)
                 .build());
 
         new CfnOutput(this, "job-doc-bucket-name", CfnOutputProps.builder()
-                .withValue(jobDocBucket.getBucketName())
-                .withDescription("the name of s3 bucket to save job document for NW app OTA demo")
+                .value(jobDocBucket.getBucketName())
+                .description("the name of s3 bucket to save job document for NW app OTA demo")
                 .build());
     }
 
     private void createPreSignRole() {
         // Create an IAM role for pre-sign the file stored as a S3 object
         Role iotPreSignS3Role = new Role(this, S3_PRESIGN_ROLE_NAME, RoleProps.builder()
-                .withAssumedBy(new ServicePrincipal("iot.amazonaws.com"))
-                .withPath("/service-role/")
-                .withManagedPolicies(Lists.newArrayList(
+                .assumedBy(new ServicePrincipal("iot.amazonaws.com"))
+                .path("/service-role/")
+                .managedPolicies(Lists.newArrayList(
                         ManagedPolicy.fromAwsManagedPolicyName("AmazonS3ReadOnlyAccess")))
                 .build());
 
         new CfnOutput(this, "s3-pre-sign-iam-role-arn", CfnOutputProps.builder()
-                .withValue(iotPreSignS3Role.getRoleArn())
-                .withDescription("the S3 pre-sign IAM role ARN for NW app OTA demo")
+                .value(iotPreSignS3Role.getRoleArn())
+                .description("the S3 pre-sign IAM role ARN for NW app OTA demo")
                 .build());
     }
 
     private void createDeviceFileS3Bucket() {
         Bucket devFileBucket = new Bucket(this, this.deviceFileBucketName, BucketProps.builder()
-                .withBlockPublicAccess(new BlockPublicAccess(BlockPublicAccessOptions.builder()
-                        .withBlockPublicAcls(false)
-                        .withBlockPublicPolicy(true)
-                        .withRestrictPublicBuckets(true)
+                .blockPublicAccess(new BlockPublicAccess(BlockPublicAccessOptions.builder()
+                        .blockPublicAcls(false)
+                        .blockPublicPolicy(true)
+                        .restrictPublicBuckets(true)
                         .build()))
-                .withRemovalPolicy(RemovalPolicy.DESTROY)
-                .withPublicReadAccess(false)
-                .withBucketName(this.deviceFileBucketName)
+                .removalPolicy(RemovalPolicy.DESTROY)
+                .publicReadAccess(false)
+                .bucketName(this.deviceFileBucketName)
                 .build());
 
         new CfnOutput(this, "dev-files-bucket-name", CfnOutputProps.builder()
-                .withValue(devFileBucket.getBucketName())
-                .withDescription(
+                .value(devFileBucket.getBucketName())
+                .description(
                         "the name of s3 bucket to save device assert files to act IoT device for NW app OTA demo")
                 .build());
     }

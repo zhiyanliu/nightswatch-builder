@@ -1,41 +1,41 @@
 package com.amazonaws.rp.nightswatch.builder.appota;
 
+import com.amazonaws.rp.nightswatch.builder.utils.S3;
+import com.amazonaws.rp.nightswatch.builder.utils.StackOutputQuerier;
 import org.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awscdk.core.Stack;
 import software.amazon.awscdk.core.*;
 import software.amazon.awscdk.services.ec2.*;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 public class AppOTADemoDeviceStack extends Stack {
     private final Logger log = LoggerFactory.getLogger("nightswatch-app-ota-demo-device-stack");
+    private final StackOutputQuerier outputQuerier = new StackOutputQuerier();
+    private final S3 s3util = new S3();
 
     private final String ec2ImageID;
-    private final String ec2Flavor;
     private final String ec2KeyName;
-    private final String ec2SetupScriptURLBase64;
+    private final String ec2SetupScriptURL;
 
-    public AppOTADemoDeviceStack(final Construct parent, final String id) {
-        this(parent, id, null);
+    public final static String SETUP_SCRIPT_FILE_NAME = "setup.py";
+
+    public AppOTADemoDeviceStack(final Construct parent, final String id, final String appOTADemoIoTStackName) {
+        this(parent, id, null, appOTADemoIoTStackName);
     }
 
-    public AppOTADemoDeviceStack(final Construct parent, final String id, final StackProps props) {
+    public AppOTADemoDeviceStack(final Construct parent, final String id, final StackProps props,
+                                 final String appOTADemoIoTStackName) {
         super(parent, id, props);
 
         Object ec2DeviceImageIDObj = this.getNode().tryGetContext("ec2-image-id");
         if (ec2DeviceImageIDObj == null)
-            this.ec2ImageID = "ami-0cd744adeca97abb1"; // Ubuntu 18.04lts x64, in ap-northeast-1 region
+            // will lookup the Ubuntu 18.04 x86_64 AMI
+            this.ec2ImageID = null;
         else
             this.ec2ImageID = ec2DeviceImageIDObj.toString();
-
-        Object ec2FlavorObj = this.getNode().tryGetContext("ec2-instance-type");
-        if (ec2FlavorObj == null)
-            this.ec2Flavor = "t2.small";
-        else
-            this.ec2Flavor = ec2FlavorObj.toString();
 
         Object ec2KeyNameObj = this.getNode().tryGetContext("ec2-key-name");
         if (ec2KeyNameObj == null)
@@ -43,15 +43,13 @@ public class AppOTADemoDeviceStack extends Stack {
         else
             this.ec2KeyName = ec2KeyNameObj.toString();
 
-        Object ec2SetupScriptURLObj = this.getNode().tryGetContext("ec2-setup-script-url-base64");
-        if (ec2SetupScriptURLObj == null) {
-            this.ec2SetupScriptURLBase64 = null;
+        String devFileBucketName = this.outputQuerier.query(this.log, appOTADemoIoTStackName, "devfilesbucketname");
+        if (devFileBucketName == null) {
+            // instead of to raise exception, since CDK needs (e.g. list and bootstrap)
+            this.ec2SetupScriptURL = null;
         } else {
-            String s = ec2SetupScriptURLObj.toString();
-            if (!Base64.isBase64(s))
-                throw new IllegalArgumentException(
-                        "parameter ec2-setup-script-url-base64 is not a valid base64 string");
-            this.ec2SetupScriptURLBase64 = s;
+            this.ec2SetupScriptURL =
+                    this.s3util.getObjectPreSignedUrl(this.log, devFileBucketName, SETUP_SCRIPT_FILE_NAME, 7);
         }
 
         // EC2 instance (act device) stuff
@@ -64,24 +62,22 @@ public class AppOTADemoDeviceStack extends Stack {
 
     private CfnInternetGateway createIGW() {
         // Create an IGW for the VPC
-        CfnInternetGateway igw = new CfnInternetGateway(this, "nw-app-ota-demo-igw",
+        return new CfnInternetGateway(this, "nw-app-ota-demo-igw",
                 CfnInternetGatewayProps.builder().build());
-
-        return igw;
     }
 
     private CfnVPC createVPC(CfnInternetGateway igw) {
         // Create a VPC for the subnet
         CfnVPC vpc = new CfnVPC(this, "nw-app-ota-demp-vpc", CfnVPCProps.builder()
-                .withCidrBlock("192.168.1.0/24")
-                .withEnableDnsHostnames(true)
-                .withEnableDnsSupport(true)
-                .withEnableDnsSupport(true)
+                .cidrBlock("192.168.1.0/24")
+                .enableDnsHostnames(true)
+                .enableDnsSupport(true)
+                .enableDnsSupport(true)
                 .build());
 
         new CfnVPCGatewayAttachment(this, "nw-app-ota-demo-igw2vpc", CfnVPCGatewayAttachmentProps.builder()
-                .withInternetGatewayId(igw.getRef())
-                .withVpcId(vpc.getRef())
+                .internetGatewayId(igw.getRef())
+                .vpcId(vpc.getRef())
                 .build());
 
         return vpc;
@@ -90,25 +86,25 @@ public class AppOTADemoDeviceStack extends Stack {
     private CfnSubnet createSubnet(CfnVPC vpc, CfnInternetGateway igw) {
         // Create a Subnet for the EC2 instance
         CfnSubnet subnet = new CfnSubnet(this, "nw-app-ota-demo-subnet", CfnSubnetProps.builder()
-                .withCidrBlock("192.168.1.0/24")
-                .withMapPublicIpOnLaunch(true)
-                .withVpcId(vpc.getRef())
+                .cidrBlock("192.168.1.0/24")
+                .mapPublicIpOnLaunch(true)
+                .vpcId(vpc.getRef())
                 .build());
 
         CfnRouteTable routeTable = new CfnRouteTable(this, "nw-app-ota-demo-route-table", CfnRouteTableProps.builder()
-                .withVpcId(vpc.getRef())
+                .vpcId(vpc.getRef())
                 .build());
 
         new CfnRoute(this, "nw-app-ota-demo-route-igw", CfnRouteProps.builder()
-                .withDestinationCidrBlock("0.0.0.0/0")
-                .withGatewayId(igw.getRef())
-                .withRouteTableId(routeTable.getRef())
+                .destinationCidrBlock("0.0.0.0/0")
+                .gatewayId(igw.getRef())
+                .routeTableId(routeTable.getRef())
                 .build());
 
         new CfnSubnetRouteTableAssociation(this, "nw-app-ota-demo-route-table4subnet",
                 CfnSubnetRouteTableAssociationProps.builder()
-                        .withRouteTableId(routeTable.getRef())
-                        .withSubnetId(subnet.getRef())
+                        .routeTableId(routeTable.getRef())
+                        .subnetId(subnet.getRef())
                         .build());
 
         return subnet;
@@ -119,53 +115,75 @@ public class AppOTADemoDeviceStack extends Stack {
 
         if (this.ec2KeyName != null) {
             CfnSecurityGroup.IngressProperty ingressProperty = CfnSecurityGroup.IngressProperty.builder()
-                    .withCidrIp("0.0.0.0/0")
-                    .withIpProtocol("TCP")
-                    .withFromPort(22)
-                    .withToPort(22)  // open SSH
+                    .cidrIp("0.0.0.0/0")
+                    .ipProtocol("TCP")
+                    .fromPort(22)
+                    .toPort(22)  // open SSH
                     .build();
             ingressRules.add(ingressProperty);
         }
 
         return new CfnSecurityGroup(this, "nw-app-ota-demo-sg", CfnSecurityGroupProps.builder()
-                .withGroupName("nw-app-ota-demo-sg")
-                .withGroupDescription("Nights Watch App OTA demo security group.")
-                .withVpcId(vpc.getRef())
-                .withSecurityGroupIngress(ingressRules)
+                .groupName("nw-app-ota-demo-sg")
+                .groupDescription("Nights Watch App OTA demo security group.")
+                .vpcId(vpc.getRef())
+                .securityGroupIngress(ingressRules)
                 .build());
     }
 
     private void createEC2Device(CfnSubnet subnet, CfnSecurityGroup sg) {
-        String cmd = null;
+        IMachineImage image;
 
-        if (this.ec2SetupScriptURLBase64 != null) {
-            String ec2SetupScriptURL = new String(Base64.decodeBase64(this.ec2SetupScriptURLBase64));
-            cmd = String.format("#!/bin/bash\n" +
-                            "sudo apt install -y unzip\n" +
-                            "curl -o /tmp/setup.py -fs '%s'\n" +
-                            "python3 /tmp/setup.py\n",
-                    ec2SetupScriptURL);
-            cmd = new String(Base64.encodeBase64(cmd.getBytes()));
+        if (this.ec2ImageID == null) {
+            Map<String, List<String>> filters = new HashMap<>();
+            filters.put("architecture", Collections.singletonList("x86_64"));
+            filters.put("image-type", Collections.singletonList("machine"));
+            filters.put("is-public", Collections.singletonList("true"));
+            filters.put("state", Collections.singletonList("available"));
+            filters.put("virtualization-type", Collections.singletonList("hvm"));
+
+            image = LookupMachineImage.Builder.create()
+                    .name("*ubuntu-bionic-18.04-amd64-server-*")
+                    .windows(false)
+                    // in order to use the image in the AWS Marketplace product,
+                    // user needs to accept terms and subscribe.
+                    // To prevent this additional action, we use amazon built-in image only here.
+                    .owners(Collections.singletonList("amazon"))
+                    .filters(filters)
+                    .build();
+        } else {
+            Map<String, String> filters = new HashMap<>();
+            filters.put(this.getRegion(), this.ec2ImageID);
+
+            image = GenericLinuxImage.Builder.create(filters).build();
         }
 
+        String cmd = String.format("#!/bin/bash\n" +
+                        "sudo apt update\n" +
+                        "sudo DEBIAN_FRONTEND=noninteractive apt install -y unzip\n" +
+                        "curl -o /tmp/setup.py -fs '%s'\n" +
+                        "python3 /tmp/setup.py\n",
+                this.ec2SetupScriptURL);
+        cmd = new String(Base64.encodeBase64(cmd.getBytes()));
+
         CfnInstance instance = new CfnInstance(this, "nw-app-ota-demo-ec2-device", CfnInstanceProps.builder()
-                .withImageId(this.ec2ImageID)
-                .withInstanceType(this.ec2Flavor)
-                .withSubnetId(subnet.getRef())
-                .withSecurityGroupIds(Arrays.asList(sg.getRef()))
-                .withKeyName(this.ec2KeyName)
-                .withTags(Arrays.asList(CfnTag.builder().withKey("Name").withValue("nw-app-ota-demo-device").build()))
-                .withUserData(cmd)
+                .imageId(image.getImage(this).getImageId())
+                .instanceType("t2.small")
+                .subnetId(subnet.getRef())
+                .securityGroupIds(Collections.singletonList(sg.getRef()))
+                .keyName(this.ec2KeyName)
+                .tags(Collections.singletonList(CfnTag.builder().key("Name").value("nw-app-ota-demo-device").build()))
+                .userData(cmd)
                 .build());
 
         new CfnOutput(this, "ec2-device-id", CfnOutputProps.builder()
-                .withValue(instance.getRef())
-                .withDescription("the EC2 instance ID as IoT device for NW app OTA demo")
+                .value(instance.getRef())
+                .description("the EC2 instance ID as IoT device for NW app OTA demo")
                 .build());
 
         new CfnOutput(this, "ec2-public-ip", CfnOutputProps.builder()
-                .withValue(instance.getAttrPublicIp())
-                .withDescription("the EC2 instance public IP as IoT device for NW app OTA demo")
+                .value(instance.getAttrPublicIp())
+                .description("the EC2 instance public IP as IoT device for NW app OTA demo")
                 .build());
     }
 }

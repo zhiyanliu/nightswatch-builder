@@ -15,14 +15,13 @@ public class AppOTADemoService {
     private final StackOutputQuerier outputQuerier = new StackOutputQuerier();
 
     public void queryEndpoint(final String appOTADemoIoTStackName) throws IOException {
-        String thingName = this.outputQuerier.query(appOTADemoIoTStackName, "thingname");
+        String thingName = this.outputQuerier.query(this.log, appOTADemoIoTStackName, "thingname");
         if (thingName == null)
             throw new IllegalArgumentException(String.format(
                     "the name of IoT device not found, is the NW app OTA demo stack %s invalid?",
                     appOTADemoIoTStackName));
 
         DescribeEndpointRequest req = new DescribeEndpointRequest();
-        // for China region (not support yet, mentioned in README), use iot:Data instead
         req.setEndpointType("iot:Data-ATS");
 
         AWSIot client = AWSIotClientBuilder.defaultClient();
