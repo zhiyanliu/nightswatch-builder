@@ -53,8 +53,8 @@ This document means to give you a guide to produce an easy-to-show demonstration
 
 - ``cdk deploy nightswatch-app-ota-demo-dev [-c ec2-key-name=<key-pair-name>] [-c ec2-image-id=<ec2-image-id>]``
 
-    - Update `ec2-image-id` optional parameter in above command to provide AMI ID to provision EC2 instance using an Ubuntu 18.04lts x64 operation system in your region, e.g. ID  `ami-0cd744adeca97abb1` can be used for region `ap-northeast-1`. CDK will lookup an Amazon official AMI contains Ubuntu 18.04lts x64 for your by default.
-    - Update `key-pair-name` optional parameter in above command to provide SSH key pair name to inject the public key to the EC2 instance, if you would like to use `ssh` login it, to debug or check log for example.
+    - Use `ec2-image-id` optional parameter in above command to provide AMI ID to provision EC2 instance using an Ubuntu 18.04lts x64 operation system in your region, e.g. ID  `ami-0cd744adeca97abb1` can be used for region `ap-northeast-1`. CDK will lookup an Amazon official AMI contains Ubuntu 18.04lts x64 for your by default.
+    - Use `key-pair-name` optional parameter in above command to provide SSH key pair name to inject the public key to the EC2 instance, if you would like to use `ssh` login it, to debug or check log for example.
 
 ## 3. Execute Application deployment and update job
 
