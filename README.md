@@ -1,6 +1,6 @@
 ## What is this
 
-This is the code repository of the AWS RP IoT device [OTA](https://en.wikipedia.org/wiki/Over-the-air_programming) automatic stack deployment and demonstration control plane, developed by AWS Rapid Prototyping team. The code name of this component is [Night's Watch](https://gameofthrones.fandom.com/wiki/Night%27s_Watch) - [Builder](https://gameofthrones.fandom.com/wiki/Builder), which is the part of Night's Watch project. 
+This is the code repository of the AWS IoT device [OTA](https://en.wikipedia.org/wiki/Over-the-air_programming) automatic stack deployment and demonstration control plane. The code name of this component is [Night's Watch](https://gameofthrones.fandom.com/wiki/Night%27s_Watch) - [Builder](https://gameofthrones.fandom.com/wiki/Builder), which is the part of Night's Watch project. 
 
 Mainly, and currently, Night's Watch - Builder provides two functions:
 
@@ -56,5 +56,5 @@ Additional, if you would like to try demonstration, it will not work if:
 
 ## Contributor
 
-* Zhi Yan Liu, AWS Rapid Prototyping team,  [liuzhiya@amazon.com](mailto:liuzhiya@amazon.com)
+* Zhi Yan Liu,  [liuzhiya@amazon.com](mailto:liuzhiya@amazon.com)
 * You. Welcome any feedback and issue report, further more, idea and code contribution are highly encouraged.
